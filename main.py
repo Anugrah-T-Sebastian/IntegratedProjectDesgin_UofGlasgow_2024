@@ -24,6 +24,37 @@ ZONE_POLYGON = np.array([
     [0, 1]
 ])
 
+DETECTION_CLASS = {
+    0: 'person',
+    1: 'bicycle',
+    2: 'car',
+    3: 'motorcycle',
+    4: 'airplane',
+    5: 'bus',
+    6: 'train',
+    7: 'truck',
+}
+
+VIDEO_SOURCE = "./MOT16-05-raw.webm"
+
+# DETECTION_CLASS = [0, 1]
+
+def printDetections(detected_objects):
+    countDict = {}
+
+    # Count the instances of each key
+    for key in DETECTION_CLASS.keys():
+        countDict[key] = 0  # Initialize the count for each key
+
+    # Update counts based on detected objects
+    for obj in detected_objects:
+        if obj in countDict:
+            countDict[obj] += 1
+
+    for key, value in countDict.items():
+        print(Colors.BLUE + f"Number of {DETECTION_CLASS[key]}:" + Colors.RESET + Colors.GREEN + f" {value}" + Colors.RESET)
+
+
 def parseArguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Yolov8 live")
     parser.add_argument("--webcam-resolution", default=[1280, 720], nargs=2, type=int)
@@ -61,12 +92,15 @@ def main():
 
             ret, frame = cap.read()
 
-            result = model(frame, agnostic_nms=True)[0]                 #Turning on agnostic_nms to avoid double detection
+            result = model(
+                        frame,      # To test the model, put the path of the video instead of camera frame
+                        agnostic_nms=True,      #Turning on agnostic_nms to avoid double detection
+                        classes=list(DETECTION_CLASS.keys()), 
+                        conf = 0.75
+                    )[0]            # Remove the [0] while testing the video
+            
             detections = sv.Detections.from_yolov8(result)
-            detections = detections[detections.class_id == 0]            # Only detecting people
-            detections = detections[detections.confidence >= 0.75]       # Only detecting people with higher level of confidence
-
-            print(Colors.BLUE + "Number of humans = " + str(len(detections)) + Colors.RESET)
+            printDetections(detections.class_id)
 
             labels = [
                 f"{model.model.names[class_id]} {confidence:0.2f}"
